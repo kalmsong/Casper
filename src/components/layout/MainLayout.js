@@ -1,7 +1,9 @@
 // src/components/layout/MainLayout.js
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
+import APIHubCanvas from '../../agents/onboarder/APIHubCanvas';
 
+// 기존 스타일 컴포넌트들 (변경 없음)
 const Container = styled.div`
   display: flex;
   height: 100vh;
@@ -140,7 +142,7 @@ const MessagesArea = styled.div`
   padding: 0;
   
   &::-webkit-scrollbar {
-    width: none;
+    width: 4px;
   }
   
   &::-webkit-scrollbar-track {
@@ -167,7 +169,7 @@ const InputContainer = styled.div`
 const MessageInput = styled.textarea`
   width: 100%;
   min-height: 48px;
-  max-height: 48px;
+  max-height: 120px;
   padding: 9px 15px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   background: rgba(255, 255, 255, 0.8);
@@ -187,27 +189,6 @@ const MessageInput = styled.textarea`
 
   &::placeholder {
     color: #9ca3af;
-  }
-`;
-
-const FileInput = styled.input`
-  display: none;
-`;
-
-const FileButton = styled.label`
-  width: 48px;
-  height: 48px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  font-size: 14px;
-
-  &:hover {
-    background: rgba(0, 0, 0, 0.1);
   }
 `;
 
@@ -239,8 +220,8 @@ const SendButton = styled.button`
 
 const ResultArea = styled.div`
   flex: 1;
-  padding: 32px;
-  overflow-y: auto;
+  padding: 0;
+  overflow: hidden;
 `;
 
 const Message = styled.div`
@@ -268,11 +249,13 @@ const MessageBubble = styled.div`
   color: ${props => props.isUser ? '#ffffff' : '#1f2937'};
   position: relative;
   backdrop-filter: blur(10px);
-  line-height: 1.2;
+  line-height: 1.4;
   font-size: 13px;
   box-shadow: ${props => props.isUser 
     ? '0 2px 12px rgba(37, 99, 235, 0.25)' 
     : '0 1px 6px rgba(0, 0, 0, 0.08)'};
+  white-space: pre-wrap;
+  word-wrap: break-word;
 `;
 
 const MessageTime = styled.div`
@@ -282,42 +265,6 @@ const MessageTime = styled.div`
   margin-bottom: 2px;
   min-width: 35px;
   text-align: ${props => props.isUser ? 'right' : 'left'};
-`;
-
-const AIIcon = styled.img`
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  object-fit: cover;
-  margin-bottom: 2px;
-  flex-shrink: 0;
-`;
-
-const UserAvatar = styled.div`
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 9px;
-  font-weight: 600;
-  margin-bottom: 2px;
-  flex-shrink: 0;
-`;
-
-const MessageHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  font-size: 11px;
-  color: ${props => props.isUser ? '#9ca3af' : '#6b7280'};
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
 `;
 
 const Avatar = styled.div`
@@ -333,11 +280,7 @@ const Avatar = styled.div`
   color: white;
   font-size: 10px;
   font-weight: 600;
-`;
-
-const MessageContent = styled.div`
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  flex-shrink: 0;
 `;
 
 const blinkCursor = keyframes`
@@ -382,12 +325,15 @@ const ThinkingDots = styled.div`
 `;
 
 const RightPanelContent = styled.div`
+  height: 100%;
+  
   h3 {
     font-size: 18px;
     font-weight: 600;
     color: #1f2937;
     margin: 0 0 16px 0;
     letter-spacing: -0.5px;
+    padding: 32px 32px 0 32px;
   }
   
   p {
@@ -395,37 +341,7 @@ const RightPanelContent = styled.div`
     font-size: 14px;
     line-height: 1.6;
     margin: 0 0 24px 0;
-  }
-  
-  h4 {
-    font-size: 14px;
-    font-weight: 600;
-    color: #374151;
-    margin: 0 0 12px 0;
-  }
-  
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  li {
-    padding: 8px 0;
-    color: #6b7280;
-    font-size: 13px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    
-    &:last-child {
-      border-bottom: none;
-    }
-    
-    &::before {
-      content: '→';
-      margin-right: 8px;
-      color: #2563eb;
-      font-weight: bold;
-    }
+    padding: 0 32px;
   }
 `;
 
@@ -438,6 +354,7 @@ const MainLayout = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [leftPanelWidth, setLeftPanelWidth] = useState(420);
   const [isResizing, setIsResizing] = useState(false);
+  const [currentDocumentId, setCurrentDocumentId] = useState(null);
   const messagesEndRef = useRef(null);
 
   const agents = [
@@ -488,6 +405,7 @@ const MainLayout = () => {
     scrollToBottom();
   }, [messages, streamingMessage]);
 
+  // 타이핑 애니메이션
   const typeMessage = (text, callback) => {
     setIsStreaming(true);
     setStreamingMessage('');
@@ -506,12 +424,38 @@ const MainLayout = () => {
     }, 20);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  // API Hub에서 오는 메시지 처리
+  const handleAPIHubMessage = (message) => {
+    const aiMessage = {
+      id: Date.now(),
+      content: message,
+      isUser: false,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, aiMessage]);
+  };
+
+  // API Hub에서 데이터 업데이트 처리
+  const handleAPIHubDataUpdate = (data) => {
+    console.log('API Hub 데이터 업데이트:', data);
+    
+    if (data.type === 'document_uploaded') {
+      setCurrentDocumentId(data.documentId);
+    }
+    
+    // 필요에 따라 다른 데이터 업데이트 처리 추가
+  };
+
+  // 메시지 전송 처리
+  const handleSendMessage = async (messageOverride = null) => {
+    const actualMessage = messageOverride || inputMessage;
+    
+    if (!actualMessage.trim() || isLoading) return;
 
     const userMessage = {
       id: Date.now(),
-      content: inputMessage,
+      content: actualMessage,
       isUser: true,
       timestamp: new Date()
     };
@@ -519,21 +463,29 @@ const MainLayout = () => {
     const updatedHistory = [...messages, userMessage];
     setMessages(updatedHistory);
 
-    const currentMessage = inputMessage;
-    setInputMessage('');
+    if (!messageOverride) {
+      setInputMessage('');
+    }
     setIsLoading(true);
 
     try {
+      const requestBody = {
+        message: actualMessage,
+        agent: activeAgent,
+        history: updatedHistory
+      };
+
+      // API Hub의 경우 현재 문서 ID 추가
+      if (activeAgent === 'onboarder' && currentDocumentId) {
+        requestBody.documentId = currentDocumentId;
+      }
+
       const response = await fetch('http://localhost:5001/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message: currentMessage,
-          agent: activeAgent,
-          history: updatedHistory
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -573,17 +525,12 @@ const MainLayout = () => {
     }
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      console.log('파일 업로드:', file.name);
-    }
-  };
-
+  // 채팅 내보내기
   const exportChat = () => {
     const chatData = {
       agent: activeAgent,
       messages: messages,
+      documentId: currentDocumentId,
       exportTime: new Date().toISOString()
     };
     
@@ -599,50 +546,144 @@ const MainLayout = () => {
     URL.revokeObjectURL(url);
   };
 
+  // 채팅 초기화
   const clearChat = () => {
     setMessages([]);
     setStreamingMessage('');
+    setCurrentDocumentId(null);
   };
 
+  // 에이전트 변경 시 처리
+  const handleAgentChange = (agentId) => {
+    setActiveAgent(agentId);
+    
+    // API Hub에서 다른 에이전트로 변경 시 문서 ID 유지하지 않음
+    if (agentId !== 'onboarder') {
+      setCurrentDocumentId(null);
+    }
+  };
+
+  // 우측 패널 렌더링
   const renderRightPanel = () => {
     switch (activeAgent) {
       case 'chat':
         return (
           <RightPanelContent>
-            <h3>Chat Assistant</h3>
-            <p>일반적인 질문과 대화를 위한 AI 어시스턴트입니다. 자연스러운 대화를 통해 다양한 주제에 대해 도움을 받을 수 있습니다.</p>
+            <h3>💬 Chat Assistant</h3>
+            <p>
+              일반적인 질문과 대화를 위한 AI 어시스턴트입니다. 
+              자연스러운 대화를 통해 다양한 주제에 대해 도움을 받을 수 있습니다.
+            </p>
+            
+            <div style={{ padding: '0 32px' }}>
+              <h4 style={{ 
+                fontSize: '14px', 
+                fontWeight: '600', 
+                color: '#374151', 
+                margin: '0 0 12px 0' 
+              }}>
+                💡 사용 팁
+              </h4>
+              <ul style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                fontSize: '13px',
+                color: '#6b7280'
+              }}>
+                <li style={{ 
+                  padding: '8px 0', 
+                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
+                }}>
+                  ● 구체적이고 명확한 질문을 해보세요
+                </li>
+                <li style={{ 
+                  padding: '8px 0', 
+                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
+                }}>
+                  ● 단계별 설명이 필요하면 요청하세요
+                </li>
+                <li style={{ 
+                  padding: '8px 0', 
+                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
+                }}>
+                  ● 예시나 비교를 요청할 수 있습니다
+                </li>
+                <li style={{ padding: '8px 0' }}>
+                  ● 언어, 프로그래밍, 창작 등 다양한 도움 가능
+                </li>
+              </ul>
+            </div>
           </RightPanelContent>
         );
+        
       case 'onboarder':
         return (
           <RightPanelContent>
-            <h3>API Integration Hub</h3>
-            <p>다양한 오픈 API의 연동과 활용을 전문적으로 지원합니다.</p>
-            <h4>지원 API</h4>
-            <ul>
-              <li>통계청 KOSIS API</li>
-              <li>법제처 국가법령정보센터</li>
-              <li>기상청 기상데이터 API</li>
-              <li>공공데이터포털 APIs</li>
-            </ul>
+            <APIHubCanvas 
+              onSendMessage={handleAPIHubMessage}
+              onDataUpdate={handleAPIHubDataUpdate}
+            />
           </RightPanelContent>
         );
+        
       case 'infoviz':
         return (
           <RightPanelContent>
-            <h3>Data Visualization Studio</h3>
-            <p>데이터를 효과적인 시각적 표현으로 변환하여 인사이트를 도출합니다.</p>
-            <h4>시각화 옵션</h4>
-            <ul>
-              <li>Statistical Charts & Graphs</li>
-              <li>Interactive Dashboards</li>
-              <li>Geographic Heat Maps</li>
-              <li>Time Series Analysis</li>
-            </ul>
+            <h3>📊 Data Visualization Studio</h3>
+            <p>
+              데이터를 효과적인 시각적 표현으로 변환하여 인사이트를 도출합니다.
+            </p>
+            
+            <div style={{ padding: '0 32px' }}>
+              <h4 style={{ 
+                fontSize: '14px', 
+                fontWeight: '600', 
+                color: '#374151', 
+                margin: '0 0 12px 0' 
+              }}>
+                🎨 시각화 옵션
+              </h4>
+              <ul style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                fontSize: '13px',
+                color: '#6b7280'
+              }}>
+                <li style={{ 
+                  padding: '8px 0', 
+                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
+                }}>
+                  📈 통계 차트 및 그래프
+                </li>
+                <li style={{ 
+                  padding: '8px 0', 
+                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
+                }}>
+                  📊 인터랙티브 대시보드
+                </li>
+                <li style={{ 
+                  padding: '8px 0', 
+                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
+                }}>
+                  🗺️ 지리적 히트맵
+                </li>
+                <li style={{ padding: '8px 0' }}>
+                  📉 시계열 분석
+                </li>
+              </ul>
+            </div>
           </RightPanelContent>
         );
+        
       default:
-        return <div>에이전트를 선택해주세요.</div>;
+        return (
+          <RightPanelContent>
+            <h3>에이전트를 선택해주세요</h3>
+            <p>위에서 원하는 AI 어시스턴트를 선택하여 시작하세요.</p>
+          </RightPanelContent>
+        );
     }
   };
 
@@ -650,21 +691,21 @@ const MainLayout = () => {
     <Container>
       <LeftPanel width={leftPanelWidth}>
         <Header>
-          <Title>AI Workspace</Title>
+          <Title>🤖 AI Workspace</Title>
           <AgentSelector>
             {agents.map(agent => (
               <AgentButton
                 key={agent.id}
                 active={activeAgent === agent.id}
-                onClick={() => setActiveAgent(agent.id)}
+                onClick={() => handleAgentChange(agent.id)}
               >
                 {agent.name}
               </AgentButton>
             ))}
           </AgentSelector>
           <ToolBar>
-            <ToolButton onClick={exportChat}>Export</ToolButton>
-            <ToolButton onClick={clearChat}>Clear</ToolButton>
+            <ToolButton onClick={exportChat}>📁 Export</ToolButton>
+            <ToolButton onClick={clearChat}>🗑️ Clear</ToolButton>
           </ToolBar>
         </Header>
         
@@ -673,21 +714,11 @@ const MainLayout = () => {
             {messages.map(message => (
               <Message key={message.id} isUser={message.isUser}>
                 <MessageWrapper isUser={message.isUser}>
-                  {message.isUser ? null : (
-                    <AIIcon 
-                      src="/assets/ai-icon.png" 
-                      alt="AI"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  )}
-                  <div style={{display: 'none'}}>
+                  {!message.isUser && (
                     <Avatar isUser={false}>AI</Avatar>
-                  </div>
+                  )}
                   <MessageBubble isUser={message.isUser}>
-                    <MessageContent>{message.content}</MessageContent>
+                    {message.content}
                   </MessageBubble>
                   <MessageTime isUser={message.isUser}>
                     {message.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -699,28 +730,16 @@ const MainLayout = () => {
             {isLoading && (
               <StatusIndicator>
                 <ThinkingDots />
-                Processing your request...
+                AI가 응답을 생성하고 있습니다...
               </StatusIndicator>
             )}
             
             {isStreaming && (
               <Message isUser={false}>
                 <MessageWrapper isUser={false}>
-                  <AIIcon 
-                    src="/assets/ai-icon.png" 
-                    alt="AI"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <div style={{display: 'none'}}>
-                    <Avatar isUser={false}>AI</Avatar>
-                  </div>
+                  <Avatar isUser={false}>AI</Avatar>
                   <MessageBubble isUser={false}>
-                    <MessageContent>
-                      {streamingMessage}<TypingCursor>|</TypingCursor>
-                    </MessageContent>
+                    {streamingMessage}<TypingCursor>|</TypingCursor>
                   </MessageBubble>
                   <MessageTime isUser={false}>Live</MessageTime>
                 </MessageWrapper>
@@ -731,29 +750,19 @@ const MainLayout = () => {
           </MessagesArea>
           
           <InputArea>
-            <FileInput
-              type="file"
-              id="file-upload"
-              onChange={handleFileUpload}
-              accept=".csv,.json,.txt,.xlsx"
-            />
-            <FileButton htmlFor="file-upload">
-              📎
-            </FileButton>
-            
             <InputContainer>
               <MessageInput
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={`Message ${agents.find(a => a.id === activeAgent)?.name}...`}
+                placeholder={`${agents.find(a => a.id === activeAgent)?.name}에게 메시지를 보내세요...`}
                 disabled={isLoading || isStreaming}
               />
             </InputContainer>
             
             <SendButton 
-              onClick={handleSendMessage} 
-              disabled={isLoading || isStreaming}
+              onClick={() => handleSendMessage()} 
+              disabled={isLoading || isStreaming || !inputMessage.trim()}
             >
               ↗
             </SendButton>
@@ -764,11 +773,6 @@ const MainLayout = () => {
       <ResizeHandle onMouseDown={handleResizeStart} />
 
       <RightPanel>
-        <Header>
-          <Title>
-            {agents.find(a => a.id === activeAgent)?.name} Dashboard
-          </Title>
-        </Header>
         <ResultArea>
           {renderRightPanel()}
         </ResultArea>
