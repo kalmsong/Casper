@@ -345,7 +345,7 @@ app.post('/api/save-parser-api-key', async (req, res) => {
     // .env 파일에 저장 (파서별로 구분)
     try {
       const envVars = readEnvFile();
-      envVars[`PARSER_${documentId}_KEY_${keyId}`] = encryptedKey;
+      envVars[`${name.trim().toUpperCase()}_API_KEY_${keyId}`] = encryptedKey;
       
       console.log('📝 .env 파일 업데이트 시도...');
       const writeSuccess = writeEnvFile(envVars);
