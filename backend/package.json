@@ -1,7 +1,7 @@
 {
-  "name": "api-hub-backend",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "API Hub Backend Server",
+  "description": "Backend Server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

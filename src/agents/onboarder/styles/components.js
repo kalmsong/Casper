@@ -2,224 +2,296 @@
 
 // 업로드 관련 스타일
 export const uploadStyles = {
-  // 기존 스타일들 유지
-  quickGuide: {
-    background: 'white',
-    borderRadius: '16px',
-    padding: '24px',
-    marginBottom: '24px',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+  fileDropZone: {
+    border: '2px dashed #d1d5db',
+    borderRadius: '12px',
+    padding: '48px 24px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+    minHeight: '300px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  
-  quickGuideTitle: {
-    color: '#1e293b',
+
+  fileDropZoneActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#eff6ff',
+    transform: 'scale(1.02)'
+  },
+
+  dropContent: {
+    maxWidth: '300px'
+  },
+
+  uploadIcon: {
+    fontSize: '48px',
+    marginBottom: '16px'
+  },
+
+  dropTitle: {
     fontSize: '1.25rem',
     fontWeight: '600',
-    margin: '0 0 20px 0',
-    textAlign: 'center'
+    color: '#1f2937',
+    marginBottom: '8px'
   },
-  
+
+  dropDescription: {
+    fontSize: '0.875rem',
+    color: '#6b7280',
+    marginBottom: '16px',
+    lineHeight: '1.5'
+  },
+
+  supportedFormats: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+
+  formatLabel: {
+    fontSize: '0.75rem',
+    color: '#9ca3af',
+    marginRight: '4px'
+  },
+
+  formatCode: {
+    backgroundColor: '#f3f4f6',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    fontSize: '0.75rem',
+    fontFamily: 'monospace',
+    color: '#374151'
+  },
+
+  quickGuide: {
+    backgroundColor: '#ffffff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    padding: '20px',
+    marginBottom: '24px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+  },
+
+  quickGuideTitle: {
+    fontSize: '1.125rem',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: '16px'
+  },
+
   guideSteps: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px'
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
   },
-  
+
   step: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    padding: '12px',
-    background: '#f8fafc',
-    borderRadius: '8px'
+    gap: '12px'
   },
-  
+
   stepNumber: {
-    background: '#3b82f6',
-    color: 'white',
     width: '24px',
     height: '24px',
     borderRadius: '50%',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    fontSize: '0.875rem',
+    fontWeight: '600',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '0.875rem',
-    fontWeight: '600',
     flexShrink: 0
   },
-  
+
   stepText: {
-    color: '#475569',
     fontSize: '0.875rem',
+    color: '#374151',
     lineHeight: '1.4'
   },
 
-  fileDropZone: {
-    height: '100%',
-    border: '3px dashed #cbd5e1',
-    borderRadius: '16px',
-    background: 'white',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    minHeight: '300px',
-    cursor: 'pointer'
-  },
-  
-  fileDropZoneActive: {
-    borderColor: '#3b82f6',
-    background: 'rgba(59, 130, 246, 0.08)',
-    transform: 'translateY(-2px)',
-    boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.2)'
-  },
-  
-  dropContent: {
-    textAlign: 'center',
-    padding: '32px'
-  },
-  
-  uploadIcon: {
-    fontSize: '4rem',
-    marginBottom: '1.5rem',
-    opacity: '0.8'
-  },
-  
-  dropTitle: {
-    color: '#1e293b',
-    fontSize: '1.5rem',
-    fontWeight: '600',
-    margin: '0 0 12px 0'
-  },
-  
-  dropDescription: {
-    color: '#64748b',
-    fontSize: '1rem',
-    margin: '0 0 24px 0'
-  },
-  
-  supportedFormats: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    flexWrap: 'wrap'
-  },
-  
-  formatLabel: {
-    color: '#64748b',
-    fontSize: '0.875rem',
-    marginRight: '8px'
-  },
-  
-  formatCode: {
-    padding: '4px 8px',
-    background: '#f1f5f9',
-    border: '1px solid #e2e8f0',
-    borderRadius: '6px',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    color: '#475569',
-    margin: '0 4px'
+  parserList: {
+    width: '300px',
+    backgroundColor: '#ffffff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
   },
 
-  // 파서 목록 스타일
-  parserList: {
-    width: '350px',
-    background: 'white',
-    borderRadius: '16px',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  
   parserListHeader: {
-    padding: '20px 24px',
-    borderBottom: '1px solid #e2e8f0',
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    color: '#1e293b'
-  },
-  
-  parserListContent: {
-    flex: 1,
     padding: '16px',
-    overflow: 'auto'
-  },
-  
-  parserItem: {
-    padding: '12px 16px',
-    border: '1px solid #e2e8f0',
-    borderRadius: '8px',
-    marginBottom: '12px',
-    background: '#fafafa',
-    transition: 'all 0.2s'
-  },
-  
-  parserItemHover: {
-    background: '#f1f5f9',
-    borderColor: '#3b82f6'
-  },
-  
-  parserName: {
+    borderBottom: '1px solid #e5e7eb',
+    fontSize: '1rem',
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#1f2937',
+    backgroundColor: '#f9fafb',
+    borderRadius: '12px 12px 0 0'
+  },
+
+  parserListContent: {
+    padding: '16px',
+    maxHeight: '400px',
+    overflowY: 'auto'
+  },
+
+  parserItem: {
+    padding: '12px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    marginBottom: '8px',
+    transition: 'all 0.2s',
+    cursor: 'pointer'
+  },
+
+  parserItemHover: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#eff6ff'
+  },
+
+  parserName: {
+    fontWeight: '500',
+    color: '#1f2937',
     marginBottom: '4px'
   },
-  
+
   parserDate: {
     fontSize: '0.75rem',
     color: '#6b7280',
     marginBottom: '8px'
   },
-  
+
   parserActions: {
     display: 'flex',
-    gap: '8px'
+    gap: '6px'
   },
-  
+
   parserButton: {
     padding: '4px 8px',
-    border: '1px solid #e2e8f0',
-    borderRadius: '4px',
-    background: 'white',
-    cursor: 'pointer',
     fontSize: '0.75rem',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    backgroundColor: '#ffffff',
+    cursor: 'pointer',
     transition: 'all 0.2s'
   },
 
   emptyState: {
     textAlign: 'center',
-    color: '#9ca3af',
-    fontSize: '14px',
-    padding: '32px'
+    padding: '32px 16px'
   },
-  
+
   emptyStateIcon: {
     fontSize: '48px',
-    marginBottom: '16px',
-    opacity: 0.5
+    marginBottom: '16px'
   },
-  
+
   emptyStateTitle: {
-    fontWeight: '500',
-    marginBottom: '8px',
-    color: '#4b5563'
+    fontSize: '1.125rem',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: '8px'
   },
-  
+
   emptyStateDescription: {
-    fontSize: '13px',
+    fontSize: '0.875rem',
+    color: '#6b7280',
     lineHeight: '1.5'
   }
 };
 
 // 분석 관련 스타일
 export const analysisStyles = {
-  // API 키 관리 스타일
+  apiSelectionPanel: {
+    padding: '24px',
+    height: '100vh',
+    overflow: 'auto',
+    backgroundColor: '#ffffff'
+  },
+
+  selectionTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: '20px',
+    borderBottom: '2px solid #e5e7eb',
+    paddingBottom: '8px'
+  },
+
+  parserTypeSection: {
+    marginBottom: '24px'
+  },
+
+  parserTypeTitle: {
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: '16px'
+  },
+
+  parserTypeOption: {
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    backgroundColor: '#ffffff'
+  },
+
+  parserTypeOptionActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#eff6ff'
+  },
+
+  optionTitle: {
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: '4px'
+  },
+
+  optionDescription: {
+    fontSize: '0.75rem',
+    color: '#6b7280',
+    lineHeight: '1.4'
+  },
+
+  stickyButtonArea: {
+    position: 'sticky',
+    bottom: '0',
+    backgroundColor: '#ffffff',
+    padding: '16px 0',
+    borderTop: '1px solid #e5e7eb',
+    marginTop: '24px'
+  },
+
+  continueButton: {
+    width: '100%',
+    padding: '12px 24px',
+    backgroundColor: '#3b82f6',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  },
+
+  continueButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    cursor: 'not-allowed'
+  },
+
+  // API 키 관련 스타일
   apiKeyContainer: {
-    background: '#f8fafc',
+    backgroundColor: '#f8fafc',
     border: '1px solid #e2e8f0',
     borderRadius: '12px',
     padding: '20px',
@@ -242,24 +314,22 @@ export const analysisStyles = {
 
   addKeyButton: {
     padding: '6px 12px',
-    background: '#3b82f6',
-    color: 'white',
-    border: 'none',
     borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '0.875rem',
+    border: 'none',
+    fontSize: '0.75rem',
     fontWeight: '500',
-    transition: 'all 0.2s'
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    color: 'white'
   },
 
-  // 저장된 키 목록
   savedKeysList: {
     marginBottom: '16px'
   },
 
   savedKeysLabel: {
     fontSize: '0.875rem',
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#374151',
     marginBottom: '8px'
   },
@@ -268,15 +338,15 @@ export const analysisStyles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '12px 16px',
-    background: 'white',
+    padding: '12px',
+    backgroundColor: '#ffffff',
     border: '1px solid #e2e8f0',
     borderRadius: '8px',
     marginBottom: '8px'
   },
 
   expiredKey: {
-    background: '#fef2f2',
+    backgroundColor: '#fef2f2',
     borderColor: '#fecaca'
   },
 
@@ -286,7 +356,7 @@ export const analysisStyles = {
 
   keyName: {
     fontSize: '0.875rem',
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#1f2937',
     marginBottom: '4px',
     display: 'flex',
@@ -294,20 +364,12 @@ export const analysisStyles = {
     gap: '8px'
   },
 
-  expiredBadge: {
-    background: '#ef4444',
-    color: 'white',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    fontSize: '0.75rem',
-    fontWeight: '500'
-  },
-
   keyMeta: {
-    display: 'flex',
-    gap: '12px',
     fontSize: '0.75rem',
-    color: '#6b7280'
+    color: '#6b7280',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px'
   },
 
   keyDescription: {
@@ -315,27 +377,52 @@ export const analysisStyles = {
   },
 
   keyExpiry: {
-    fontWeight: '500'
+    // 스타일은 keyMeta에서 상속
   },
 
   keyActions: {
     display: 'flex',
-    gap: '4px'
+    gap: '8px'
   },
 
   keyActionButton: {
     padding: '4px 8px',
-    background: 'transparent',
-    border: '1px solid #e2e8f0',
+    border: 'none',
     borderRadius: '4px',
+    backgroundColor: 'transparent',
     cursor: 'pointer',
-    fontSize: '0.75rem',
+    fontSize: '0.875rem',
     transition: 'all 0.2s'
+  },
+
+  expiredBadge: {
+    backgroundColor: '#ef4444',
+    color: 'white',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    fontSize: '0.625rem',
+    fontWeight: '500'
+  },
+
+  noKeysMessage: {
+    textAlign: 'center',
+    padding: '24px',
+    color: '#6b7280'
+  },
+
+  noKeysIcon: {
+    fontSize: '32px',
+    marginBottom: '12px'
+  },
+
+  noKeysText: {
+    fontSize: '0.875rem',
+    lineHeight: '1.5'
   },
 
   // 새 키 추가 폼
   newKeyForm: {
-    background: 'white',
+    backgroundColor: '#ffffff',
     border: '1px solid #e2e8f0',
     borderRadius: '8px',
     padding: '16px'
@@ -346,17 +433,16 @@ export const analysisStyles = {
   },
 
   formRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    display: 'flex',
     gap: '12px'
   },
 
   formLabel: {
     display: 'block',
     fontSize: '0.875rem',
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#374151',
-    marginBottom: '6px'
+    marginBottom: '4px'
   },
 
   formInput: {
@@ -366,146 +452,73 @@ export const analysisStyles = {
     borderRadius: '6px',
     fontSize: '0.875rem',
     transition: 'border-color 0.2s',
-    boxSizing: 'border-box'
+    outline: 'none'
   },
 
   formActions: {
     display: 'flex',
     justifyContent: 'flex-end',
-    marginTop: '16px'
+    gap: '8px'
   },
 
   saveKeyButton: {
     padding: '8px 16px',
-    background: '#10b981',
-    color: 'white',
-    border: 'none',
     borderRadius: '6px',
-    cursor: 'pointer',
+    border: 'none',
     fontSize: '0.875rem',
     fontWeight: '500',
-    transition: 'all 0.2s'
-  },
-
-  // 키 없음 메시지
-  noKeysMessage: {
-    textAlign: 'center',
-    padding: '32px',
-    color: '#6b7280'
-  },
-
-  noKeysIcon: {
-    fontSize: '2.5rem',
-    marginBottom: '12px',
-    opacity: 0.6
-  },
-
-  noKeysText: {
-    fontSize: '0.875rem',
-    lineHeight: '1.5'
-  },
-
-  // API 선택 패널 스타일 (스크롤 문제 해결)
-  apiSelectionPanel: {
-    flex: 1,
-    padding: '24px',
-    backgroundColor: '#ffffff',
-    borderRight: '1px solid #e2e8f0',
-    display: 'flex',
-    flexDirection: 'column',
-    maxHeight: '100vh', // 최대 높이 설정
-    overflow: 'auto'    // 스크롤 가능하도록
-  },
-
-  selectionTitle: {
-    fontSize: '1.25rem',
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: '16px',
-    textAlign: 'center'
-  },
-
-  // 파서 타입 선택 섹션 스타일 추가
-  parserTypeSection: {
-    marginBottom: '20px',
-    padding: '16px',
-    backgroundColor: '#ffffff',
-    borderRadius: '8px',
-    border: '1px solid #e2e8f0'
-  },
-
-  parserTypeTitle: {
-    fontSize: '1rem',
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: '12px'
-  },
-
-  parserTypeOption: {
-    padding: '16px',
-    border: '2px solid #e2e8f0',
-    borderRadius: '12px',
-    marginBottom: '12px',
     cursor: 'pointer',
     transition: 'all 0.2s',
-    backgroundColor: '#fafafa'
-  },
-
-  parserTypeOptionActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#f0f9ff'
-  },
-
-  optionTitle: {
-    fontSize: '1rem',
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: '8px'
-  },
-
-  optionDescription: {
-    fontSize: '0.875rem',
-    color: '#6b7280',
-    lineHeight: '1.4'
-  },
-
-  continueButton: {
-    width: '100%',
-    padding: '12px 24px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    marginTop: '24px',
-    transition: 'all 0.2s'
-  },
-
-  continueButtonDisabled: {
-    backgroundColor: '#9ca3af',
-    cursor: 'not-allowed'
-  },
-
-  // 하단 고정 버튼 영역
-  stickyButtonArea: {
-    position: 'sticky',
-    bottom: 0,
-    backgroundColor: 'white',
-    padding: '16px 0',
-    borderTop: '1px solid #e2e8f0',
-    marginTop: 'auto', // 자동으로 아래쪽으로 밀어내기
-    zIndex: 10
+    color: 'white'
   }
 };
 
 // 에디터 관련 스타일
 export const editorStyles = {
-  // 여기에 코드 에디터 관련 스타일들 추가 예정
+  codeEditor: {
+    width: '100%',
+    height: '100%',
+    border: 'none',
+    outline: 'none',
+    resize: 'none',
+    fontFamily: '"Monaco", "Cascadia Code", "Roboto Mono", "Consolas", monospace',
+    fontSize: '14px',
+    lineHeight: '1.5',
+    padding: '16px',
+    backgroundColor: '#ffffff'
+  }
 };
 
 // 공통 스타일
 export const commonStyles = {
-  // 여기에 공통 스타일들 추가 예정
+  button: {
+    padding: '8px 16px',
+    borderRadius: '6px',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    transition: 'all 0.2s'
+  },
+
+  primaryButton: {
+    backgroundColor: '#3b82f6',
+    color: '#ffffff'
+  },
+
+  secondaryButton: {
+    backgroundColor: '#ffffff',
+    color: '#374151',
+    border: '1px solid #d1d5db'
+  },
+
+  dangerButton: {
+    backgroundColor: '#ef4444',
+    color: '#ffffff'
+  },
+
+  successButton: {
+    backgroundColor: '#10b981',
+    color: '#ffffff'
+  }
 };

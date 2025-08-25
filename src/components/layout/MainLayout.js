@@ -1,7 +1,9 @@
-// src/components/layout/MainLayout.js
+// src/components/layout/MainLayout.js (Enhanced with Multi-Model Chat)
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import APIHubCanvas from '../../agents/onboarder/APIHubCanvas';
+import LexpilotCanvas from '../../agents/lexpilot/LexpilotCanvas';
+import InfoVizCanvas from '../../agents/infoviz/InfoVizCanvas';
 
 // 기존 스타일 컴포넌트들 (변경 없음)
 const Container = styled.div`
@@ -103,6 +105,113 @@ const AgentButton = styled.button`
   }
 `;
 
+// 새로운 모델 선택 UI 컴포넌트들
+const ModelSelector = styled.div`
+  margin-bottom: 16px;
+  padding: 16px;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+`;
+
+const ModelSelectorTitle = styled.div`
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ModelGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+`;
+
+const ModelCard = styled.button`
+  padding: 12px;
+  border: 2px solid ${props => props.selected ? '#2563eb' : 'rgba(0, 0, 0, 0.1)'};
+  background: ${props => props.selected ? 'rgba(37, 99, 235, 0.05)' : '#ffffff'};
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  position: relative;
+
+  &:hover {
+    border-color: ${props => props.selected ? '#1d4ed8' : 'rgba(37, 99, 235, 0.3)'};
+    background: ${props => props.selected ? 'rgba(37, 99, 235, 0.08)' : 'rgba(37, 99, 235, 0.02)'};
+  }
+`;
+
+const ModelName = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: ${props => props.selected ? '#1d4ed8' : '#1f2937'};
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const ModelDescription = styled.div`
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.3;
+`;
+
+const ModelStatus = styled.div`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${props => props.selected ? '#10b981' : '#d1d5db'};
+`;
+
+const AutoModeToggle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+`;
+
+const ToggleSwitch = styled.button`
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s;
+  background: ${props => props.active ? '#2563eb' : '#d1d5db'};
+
+  &:after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    top: 3px;
+    left: ${props => props.active ? '23px' : '3px'};
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+`;
+
+const ToggleLabel = styled.span`
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+`;
+
+// 기존 스타일 컴포넌트들 계속...
 const ToolBar = styled.div`
   display: flex;
   gap: 8px;
@@ -271,9 +380,13 @@ const Avatar = styled.div`
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: ${props => props.isUser 
-    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
-    : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'};
+  background: ${props => {
+    if (props.isUser) return 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+    if (props.model === 'openai') return 'linear-gradient(135deg, #00a67e 0%, #00c29a 100%)';
+    if (props.model === 'claude') return 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)';
+    if (props.model === 'gemini') return 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)';
+    return 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -281,6 +394,34 @@ const Avatar = styled.div`
   font-size: 10px;
   font-weight: 600;
   flex-shrink: 0;
+`;
+
+const AutoSelectionIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  animation: slideIn 0.3s ease-out;
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+
+const ModelBadge = styled.span`
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 const blinkCursor = keyframes`
@@ -355,15 +496,80 @@ const MainLayout = () => {
   const [leftPanelWidth, setLeftPanelWidth] = useState(420);
   const [isResizing, setIsResizing] = useState(false);
   const [currentDocumentId, setCurrentDocumentId] = useState(null);
+  
+  // 새로운 상태들 - 모델 관리
+  const [selectedModel, setSelectedModel] = useState('openai');
+  const [autoMode, setAutoMode] = useState(false);
+  const [modelUsageStats, setModelUsageStats] = useState({
+    openai: 0,
+    claude: 0,
+    gemini: 0
+  });
+  const [lastAutoSelection, setLastAutoSelection] = useState(null); // 마지막 자동 선택 정보
+
   const messagesEndRef = useRef(null);
+
+  // AI 모델 설정
+  const models = [
+    {
+      id: 'openai',
+      name: 'OpenAI GPT-4',
+      icon: '🤖',
+      description: '브레인스토밍, 창의적 아이디어, 일반 대화',
+      specialties: ['브레인스토밍', '창의성', '일반 질문'],
+      color: '#00a67e'
+    },
+    {
+      id: 'claude',
+      name: 'Claude 3',
+      icon: '🧠',
+      description: '코딩, 분석, 정리, 논리적 사고',
+      specialties: ['코딩', '분석', '정리', '논리적 사고'],
+      color: '#ff6b35'
+    },
+    {
+      id: 'gemini',
+      name: 'Google Gemini',
+      icon: '🔍',
+      description: '검색, 최신 정보, 데이터 분석',
+      specialties: ['검색', '최신정보', '데이터 분석'],
+      color: '#4285f4'
+    }
+  ];
 
   const agents = [
     { id: 'chat', name: 'Chat', description: '기본 대화' },
     { id: 'onboarder', name: 'API Hub', description: 'API 연동' },
-    { id: 'infoviz', name: 'DataViz', description: '시각화' }
+    { id: 'infoviz', name: 'DataViz', description: '시각화' },
+    { id: 'lexpilot', name: 'Lexpilot', description: '법규 검토' }
   ];
 
-  // 패널 리사이징 로직
+  // 자동 모델 선택 로직
+  const selectModelAutomatically = (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    // 코딩 관련 키워드
+    const codingKeywords = ['코드', '프로그래밍', '함수', '버그', '디버그', '리팩토링', '알고리즘', 
+                           'python', 'javascript', 'react', 'api', '정리해', '분석해'];
+    
+    // 검색 관련 키워드  
+    const searchKeywords = ['최신', '뉴스', '검색', '찾아', '언제', '어디서', '누가', '트렌드', '현재'];
+    
+    // 창의성 관련 키워드
+    const creativeKeywords = ['아이디어', '브레인스토밍', '창의적', '제안', '방법', '생각', '어떻게'];
+
+    if (codingKeywords.some(keyword => lowerMessage.includes(keyword))) {
+      return 'claude';
+    } else if (searchKeywords.some(keyword => lowerMessage.includes(keyword))) {
+      return 'gemini';
+    } else if (creativeKeywords.some(keyword => lowerMessage.includes(keyword))) {
+      return 'openai';
+    }
+    
+    return selectedModel; // 판단 안 되면 현재 선택된 모델 유지
+  };
+
+  // 패널 리사이징 로직 (기존과 동일)
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isResizing) return;
@@ -430,7 +636,8 @@ const MainLayout = () => {
       id: Date.now(),
       content: message,
       isUser: false,
-      timestamp: new Date()
+      timestamp: new Date(),
+      model: 'system'
     };
     
     setMessages(prev => [...prev, aiMessage]);
@@ -443,21 +650,64 @@ const MainLayout = () => {
     if (data.type === 'document_uploaded') {
       setCurrentDocumentId(data.documentId);
     }
-    
-    // 필요에 따라 다른 데이터 업데이트 처리 추가
   };
 
-  // 메시지 전송 처리
+  // 향상된 메시지 전송 처리
   const handleSendMessage = async (messageOverride = null) => {
     const actualMessage = messageOverride || inputMessage;
     
     if (!actualMessage.trim() || isLoading) return;
 
+    let modelToUse = selectedModel;
+    let autoSelectionReason = null;
+
+    // 자동 모드일 때 백엔드에서 모델 자동 선택
+    if (autoMode && activeAgent === 'chat') {
+      try {
+        console.log('🤖 자동 모드: 최적 모델 선택 중...');
+        
+        const autoSelectResponse = await fetch('http://localhost:5001/api/models/auto-select', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: actualMessage })
+        });
+
+        if (autoSelectResponse.ok) {
+          const autoSelectData = await autoSelectResponse.json();
+          modelToUse = autoSelectData.selectedModel;
+          autoSelectionReason = autoSelectData.reasoning;
+          
+          console.log(`✅ AI가 ${modelToUse} 모델을 선택했습니다: ${autoSelectionReason}`);
+          
+          // 마지막 자동 선택 정보 저장
+          setLastAutoSelection({
+            model: modelToUse,
+            reason: autoSelectionReason,
+            message: actualMessage,
+            timestamp: new Date()
+          });
+          
+          // 자동 선택된 모델을 UI에 임시로 표시
+          setSelectedModel(modelToUse);
+        } else {
+          console.warn('⚠️ 자동 선택 실패, 기본 모델 사용');
+        }
+      } catch (error) {
+        console.error('❌ 자동 모델 선택 에러:', error);
+        // 에러 시 기본 선택된 모델 사용
+      }
+    }
+    
     const userMessage = {
       id: Date.now(),
       content: actualMessage,
       isUser: true,
-      timestamp: new Date()
+      timestamp: new Date(),
+      model: modelToUse,
+      autoSelected: autoMode && autoSelectionReason ? true : false,
+      autoReason: autoSelectionReason
     };
 
     const updatedHistory = [...messages, userMessage];
@@ -472,6 +722,7 @@ const MainLayout = () => {
       const requestBody = {
         message: actualMessage,
         agent: activeAgent,
+        model: modelToUse, // 선택된 모델 정보 추가
         history: updatedHistory
       };
 
@@ -494,12 +745,21 @@ const MainLayout = () => {
 
       const data = await response.json();
       
+      // 모델 사용 통계 업데이트
+      setModelUsageStats(prev => ({
+        ...prev,
+        [modelToUse]: prev[modelToUse] + 1
+      }));
+      
       typeMessage(data.response, () => {
         const aiMessage = {
           id: Date.now() + 1,
           content: data.response,
           isUser: false,
-          timestamp: new Date()
+          timestamp: new Date(),
+          model: modelToUse,
+          autoSelected: autoMode && autoSelectionReason ? true : false,
+          autoReason: autoSelectionReason
         };
         setMessages(prev => [...prev, aiMessage]);
         setIsLoading(false);
@@ -511,7 +771,8 @@ const MainLayout = () => {
         id: Date.now() + 1,
         content: `연결 오류가 발생했습니다: ${error.message}`,
         isUser: false,
-        timestamp: new Date()
+        timestamp: new Date(),
+        model: 'system'
       };
       setMessages(prev => [...prev, errorMessage]);
       setIsLoading(false);
@@ -530,6 +791,7 @@ const MainLayout = () => {
     const chatData = {
       agent: activeAgent,
       messages: messages,
+      modelUsageStats: modelUsageStats,
       documentId: currentDocumentId,
       exportTime: new Date().toISOString()
     };
@@ -551,6 +813,7 @@ const MainLayout = () => {
     setMessages([]);
     setStreamingMessage('');
     setCurrentDocumentId(null);
+    setModelUsageStats({ openai: 0, claude: 0, gemini: 0 });
   };
 
   // 에이전트 변경 시 처리
@@ -569,10 +832,10 @@ const MainLayout = () => {
       case 'chat':
         return (
           <RightPanelContent>
-            <h3>💬 Chat Assistant</h3>
+            <h3>💬 Multi-Model Chat Assistant</h3>
             <p>
-              일반적인 질문과 대화를 위한 AI 어시스턴트입니다. 
-              자연스러운 대화를 통해 다양한 주제에 대해 도움을 받을 수 있습니다.
+              여러 AI 모델을 활용한 고급 채팅 어시스턴트입니다. 
+              각 모델의 특장점을 활용하여 최적의 답변을 제공합니다.
             </p>
             
             <div style={{ padding: '0 32px' }}>
@@ -582,7 +845,7 @@ const MainLayout = () => {
                 color: '#374151', 
                 margin: '0 0 12px 0' 
               }}>
-                💡 사용 팁
+                🎯 모델별 특장점
               </h4>
               <ul style={{
                 listStyle: 'none',
@@ -591,28 +854,33 @@ const MainLayout = () => {
                 fontSize: '13px',
                 color: '#6b7280'
               }}>
-                <li style={{ 
-                  padding: '8px 0', 
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
-                }}>
-                  ● 구체적이고 명확한 질문을 해보세요
-                </li>
-                <li style={{ 
-                  padding: '8px 0', 
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
-                }}>
-                  ● 단계별 설명이 필요하면 요청하세요
-                </li>
-                <li style={{ 
-                  padding: '8px 0', 
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
-                }}>
-                  ● 예시나 비교를 요청할 수 있습니다
-                </li>
-                <li style={{ padding: '8px 0' }}>
-                  ● 언어, 프로그래밍, 창작 등 다양한 도움 가능
-                </li>
+                {models.map(model => (
+                  <li key={model.id} style={{ 
+                    padding: '8px 0', 
+                    borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '16px' }}>{model.icon}</span>
+                    <div>
+                      <strong style={{ color: model.color }}>{model.name}:</strong> {model.description}
+                    </div>
+                  </li>
+                ))}
               </ul>
+              
+              <div style={{ 
+                marginTop: '16px', 
+                padding: '12px', 
+                backgroundColor: '#f0f9ff', 
+                borderRadius: '8px',
+                fontSize: '13px',
+                color: '#0369a1'
+              }}>
+                <strong>💡 사용법:</strong> 수동으로 모델을 선택하거나 자동 모드를 활성화하여 
+                메시지 내용에 따라 AI가 최적의 모델을 자동 선택합니다.
+              </div>
             </div>
           </RightPanelContent>
         );
@@ -630,50 +898,14 @@ const MainLayout = () => {
       case 'infoviz':
         return (
           <RightPanelContent>
-            <h3>📊 Data Visualization Studio</h3>
-            <p>
-              데이터를 효과적인 시각적 표현으로 변환하여 인사이트를 도출합니다.
-            </p>
-            
-            <div style={{ padding: '0 32px' }}>
-              <h4 style={{ 
-                fontSize: '14px', 
-                fontWeight: '600', 
-                color: '#374151', 
-                margin: '0 0 12px 0' 
-              }}>
-                🎨 시각화 옵션
-              </h4>
-              <ul style={{
-                listStyle: 'none',
-                padding: 0,
-                margin: 0,
-                fontSize: '13px',
-                color: '#6b7280'
-              }}>
-                <li style={{ 
-                  padding: '8px 0', 
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
-                }}>
-                  📈 통계 차트 및 그래프
-                </li>
-                <li style={{ 
-                  padding: '8px 0', 
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
-                }}>
-                  📊 인터랙티브 대시보드
-                </li>
-                <li style={{ 
-                  padding: '8px 0', 
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)' 
-                }}>
-                  🗺️ 지리적 히트맵
-                </li>
-                <li style={{ padding: '8px 0' }}>
-                  📉 시계열 분석
-                </li>
-              </ul>
-            </div>
+            <InfoVizCanvas />
+          </RightPanelContent>
+        );
+        
+      case 'lexpilot':
+        return (
+          <RightPanelContent>
+            <LexpilotCanvas />
           </RightPanelContent>
         );
         
@@ -686,6 +918,9 @@ const MainLayout = () => {
         );
     }
   };
+
+  // 현재 선택된 모델의 정보를 가져오는 함수
+  const getCurrentModel = () => models.find(m => m.id === selectedModel) || models[0];
 
   return (
     <Container>
@@ -703,9 +938,77 @@ const MainLayout = () => {
               </AgentButton>
             ))}
           </AgentSelector>
+
+          {/* 모델 선택 UI - Chat 탭에서만 표시 */}
+          {activeAgent === 'chat' && (
+            <ModelSelector>
+              <ModelSelectorTitle>
+                🧠 AI 모델 선택
+                {autoMode && <span style={{ fontSize: '12px', color: '#10b981' }}>• 자동 모드 활성화</span>}
+              </ModelSelectorTitle>
+              
+              <ModelGrid>
+                {models.map(model => (
+                  <ModelCard
+                    key={model.id}
+                    selected={selectedModel === model.id}
+                    onClick={() => setSelectedModel(model.id)}
+                    disabled={autoMode}
+                    style={{ opacity: autoMode ? 0.7 : 1 }}
+                  >
+                    <ModelStatus selected={selectedModel === model.id} />
+                    <ModelName selected={selectedModel === model.id}>
+                      <span>{model.icon}</span>
+                      {model.name}
+                    </ModelName>
+                    <ModelDescription>
+                      {model.description}
+                    </ModelDescription>
+                    {modelUsageStats[model.id] > 0 && (
+                      <div style={{
+                        fontSize: '10px',
+                        color: '#9ca3af',
+                        marginTop: '4px'
+                      }}>
+                        사용횟수: {modelUsageStats[model.id]}회
+                      </div>
+                    )}
+                  </ModelCard>
+                ))}
+              </ModelGrid>
+
+              <AutoModeToggle>
+                <ToggleSwitch
+                  active={autoMode}
+                  onClick={() => setAutoMode(!autoMode)}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <ToggleLabel>
+                    자동 모드 (메시지 내용에 따라 AI가 모델 자동 선택)
+                  </ToggleLabel>
+                  {lastAutoSelection && autoMode && (
+                    <div style={{ 
+                      fontSize: '10px', 
+                      color: '#10b981',
+                      fontWeight: '500'
+                    }}>
+                      마지막 선택: {models.find(m => m.id === lastAutoSelection.model)?.name} 
+                      • {lastAutoSelection.reason}
+                    </div>
+                  )}
+                </div>
+              </AutoModeToggle>
+            </ModelSelector>
+          )}
+
           <ToolBar>
-            <ToolButton onClick={exportChat}>📁 Export</ToolButton>
+            <ToolButton onClick={exportChat}>📄 Export</ToolButton>
             <ToolButton onClick={clearChat}>🗑️ Clear</ToolButton>
+            {activeAgent === 'chat' && (
+              <ToolButton onClick={() => setModelUsageStats({ openai: 0, claude: 0, gemini: 0 })}>
+                📊 Reset Stats
+              </ToolButton>
+            )}
           </ToolBar>
         </Header>
         
@@ -713,13 +1016,58 @@ const MainLayout = () => {
           <MessagesArea>
             {messages.map(message => (
               <Message key={message.id} isUser={message.isUser}>
+                {/* 자동 선택 표시 */}
+                {message.autoSelected && message.autoReason && !message.isUser && (
+                  <AutoSelectionIndicator>
+                    <span>🤖</span>
+                    <span>AI가 <ModelBadge>{message.model}</ModelBadge> 모델을 선택했습니다</span>
+                    <span style={{ fontSize: '10px', opacity: 0.8 }}>
+                      • {message.autoReason}
+                    </span>
+                  </AutoSelectionIndicator>
+                )}
+                
                 <MessageWrapper isUser={message.isUser}>
                   {!message.isUser && (
-                    <Avatar isUser={false}>AI</Avatar>
+                    <Avatar isUser={false} model={message.model}>
+                      {message.model === 'openai' ? '🤖' : 
+                       message.model === 'claude' ? '🧠' : 
+                       message.model === 'gemini' ? '🔍' : 'AI'}
+                    </Avatar>
                   )}
-                  <MessageBubble isUser={message.isUser}>
-                    {message.content}
-                  </MessageBubble>
+                  {message.isUser && (
+                    <Avatar isUser={true}>YOU</Avatar>
+                  )}
+                  <div>
+                    <MessageBubble isUser={message.isUser}>
+                      {message.content}
+                    </MessageBubble>
+                    {!message.isUser && message.model && message.model !== 'system' && (
+                      <div style={{
+                        fontSize: '10px',
+                        color: '#9ca3af',
+                        marginTop: '4px',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <span>{models.find(m => m.id === message.model)?.name || message.model}</span>
+                        {message.autoSelected && (
+                          <span style={{
+                            background: '#10b981',
+                            color: 'white',
+                            padding: '1px 4px',
+                            borderRadius: '3px',
+                            fontSize: '9px',
+                            fontWeight: '500'
+                          }}>
+                            AUTO
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <MessageTime isUser={message.isUser}>
                     {message.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </MessageTime>
@@ -730,17 +1078,26 @@ const MainLayout = () => {
             {isLoading && (
               <StatusIndicator>
                 <ThinkingDots />
-                AI가 응답을 생성하고 있습니다...
+                {autoMode && activeAgent === 'chat'
+                  ? `AI가 최적 모델을 선택했습니다. ${getCurrentModel().name}이(가) 응답을 생성하고 있습니다...`
+                  : `${getCurrentModel().name}이(가) 응답을 생성하고 있습니다...`
+                }
               </StatusIndicator>
             )}
             
             {isStreaming && (
               <Message isUser={false}>
                 <MessageWrapper isUser={false}>
-                  <Avatar isUser={false}>AI</Avatar>
-                  <MessageBubble isUser={false}>
-                    {streamingMessage}<TypingCursor>|</TypingCursor>
-                  </MessageBubble>
+                  <Avatar isUser={false} model={selectedModel}>
+                    {selectedModel === 'openai' ? '🤖' : 
+                     selectedModel === 'claude' ? '🧠' : 
+                     selectedModel === 'gemini' ? '🔍' : 'AI'}
+                  </Avatar>
+                  <div>
+                    <MessageBubble isUser={false}>
+                      {streamingMessage}<TypingCursor>|</TypingCursor>
+                    </MessageBubble>
+                  </div>
                   <MessageTime isUser={false}>Live</MessageTime>
                 </MessageWrapper>
               </Message>
@@ -755,7 +1112,13 @@ const MainLayout = () => {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={`${agents.find(a => a.id === activeAgent)?.name}에게 메시지를 보내세요...`}
+                placeholder={
+                  activeAgent === 'chat' 
+                    ? autoMode 
+                      ? '메시지를 입력하세요... (AI가 자동으로 적합한 모델을 선택합니다)'
+                      : `${getCurrentModel().name}에게 메시지를 보내세요...`
+                    : `${agents.find(a => a.id === activeAgent)?.name}에게 메시지를 보내세요...`
+                }
                 disabled={isLoading || isStreaming}
               />
             </InputContainer>
