@@ -5,6 +5,7 @@
 backend/node_modules/
 backend/uploads/
 /.pnp
+backkend/env/*.json
 .pnp.js
 
 # PDF
@@ -23,7 +24,6 @@ backend/uploads/
 .env.development.local
 .env.test.local
 .env.production.local
-backkend/env
 
 npm-debug.log*
 yarn-debug.log*
