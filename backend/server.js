@@ -9,9 +9,12 @@ require('dotenv').config();
 
 // AI SDK imports
 const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // 파일 프로세서 import
 const { FileProcessor } = require('./file_processor.js');
+const fetch = require('node-fetch');
 
 const app = express();
 const PORT = 5001;
@@ -36,6 +39,25 @@ app.use(express.json());
 
 const openaiApiKey = process.env.OPENAI_API_KEY || process.env.REACT_APP_OPENAI_API_KEY;
 let openai = null;
+let anthropic = null;
+let gemini = null;
+
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+const geminiApiKey = process.env.GEMINI_API_KEY;
+
+if (anthropicApiKey) {
+  anthropic = new Anthropic({ apiKey: anthropicApiKey });
+  console.log('✅ Anthropic (Claude) API 키 로드 완료');
+} else {
+  console.warn('⚠️ Anthropic API 키가 설정되지 않음');
+}
+
+if (geminiApiKey) {
+  gemini = new GoogleGenerativeAI(geminiApiKey);
+  console.log('✅ Gemini API 키 로드 완료');
+} else {
+  console.warn('⚠️ Gemini API 키가 설정되지 않음');
+}
 
 if (openaiApiKey) {
   openai = new OpenAI({ apiKey: openaiApiKey });
@@ -62,12 +84,12 @@ function initializeEnvFile() {
   try {
     if (!fs.existsSync(envPath)) {
       const defaultEnv = `# API Hub Environment Variables
-OPENAI_API_KEY=your-openai-key-here
-ANTHROPIC_API_KEY=your-claude-key-here
-GEMINI_API_KEY=your-gemini-key-here
-ENCRYPTION_SECRET=default-secret-key-change-this
-PORT=5001
-`;
+        OPENAI_API_KEY=your-openai-key-here
+        ANTHROPIC_API_KEY=your-claude-key-here
+        GEMINI_API_KEY=your-gemini-key-here
+        ENCRYPTION_SECRET=default-secret-key-change-this
+        PORT=5001
+      `;
       fs.writeFileSync(envPath, defaultEnv, 'utf8');
       console.log('✅ .env 파일이 생성되었습니다');
     }
@@ -239,49 +261,81 @@ async function callOpenAI(messages, systemMessage = null) {
 }
 
 async function callClaude(messages, systemMessage = null) {
-  if (!openai) {
-    throw new Error('Claude 시뮬레이션을 위한 OpenAI API가 설정되지 않았습니다');
+  if (!anthropic) {
+    // 폴백: OpenAI로 시뮬레이션
+    if (!openai) {
+      throw new Error('Claude API가 설정되지 않았습니다');
+    }
+    return callOpenAI(messages, systemMessage + '\n[Claude 시뮬레이션 모드]');
   }
 
-  const claudeSystemPrompt = `${systemMessage || ''} 
-당신은 Claude 3, Anthropic의 AI 어시스턴트입니다. 
-코딩, 분석, 정리, 논리적 사고에 특화되어 있습니다. 
-정확하고 체계적인 답변을 제공하세요.`;
+  try {
+    // Anthropic 메시지 형식으로 변환
+    const claudeMessages = messages.map(msg => ({
+      role: msg.role === 'system' ? 'assistant' : msg.role,
+      content: msg.content
+    }));
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: claudeSystemPrompt },
-      ...messages
-    ],
-    max_tokens: 1000,
-    temperature: 0.3
-  });
+    const response = await anthropic.messages.create({
+      model: 'claude-3-sonnet-20241022',
+      max_tokens: 1024,
+      system: systemMessage || '당신은 도움이 되는 AI 어시스턴트입니다. 한국어로 응답하세요.',
+      messages: claudeMessages
+    });
 
-  return completion.choices[0].message.content;
+    return response.content[0].text;
+  } catch (error) {
+    console.error('Claude API 호출 실패:', error);
+    
+    // OpenAI 폴백
+    if (openai) {
+      console.log('OpenAI로 폴백...');
+      return callOpenAI(messages, `[Claude 오류 - OpenAI 폴백] ${systemMessage || ''}`);
+    }
+    
+    throw error;
+  }
 }
 
 async function callGemini(messages, systemMessage = null) {
-  if (!openai) {
-    throw new Error('Gemini 시뮬레이션을 위한 OpenAI API가 설정되지 않았습니다');
+  if (!gemini) {
+    // 폴백: OpenAI로 시뮬레이션
+    if (!openai) {
+      throw new Error('Gemini API가 설정되지 않았습니다');
+    }
+    return callOpenAI(messages, systemMessage + '\n[Gemini 시뮬레이션 모드]');
   }
 
-  const geminiSystemPrompt = `${systemMessage || ''} 
-당신은 Google Gemini, Google의 AI 어시스턴트입니다. 
-검색, 최신 정보 제공, 데이터 분석에 특화되어 있습니다. 
-정확하고 최신의 정보를 바탕으로 답변하세요.`;
-
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: geminiSystemPrompt },
-      ...messages
-    ],
-    max_tokens: 1000,
-    temperature: 0.5
-  });
-
-  return completion.choices[0].message.content;
+  try {
+    const model = gemini.getGenerativeModel({ model: 'gemini-pro' });
+    
+    // 대화 히스토리 구성
+    let prompt = systemMessage ? systemMessage + '\n\n' : '';
+    
+    messages.forEach(msg => {
+      if (msg.role === 'user') {
+        prompt += `사용자: ${msg.content}\n`;
+      } else if (msg.role === 'assistant') {
+        prompt += `AI: ${msg.content}\n`;
+      }
+    });
+    
+    prompt += 'AI: ';
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Gemini API 호출 실패:', error);
+    
+    // OpenAI 폴백
+    if (openai) {
+      console.log('OpenAI로 폴백...');
+      return callOpenAI(messages, `[Gemini 오류 - OpenAI 폴백] ${systemMessage || ''}`);
+    }
+    
+    throw error;
+  }
 }
 
 function selectModelAutomatically(message) {
@@ -479,17 +533,22 @@ app.get('/api/models/status', (req, res) => {
     openai: {
       available: !!openai,
       name: 'OpenAI GPT-4',
-      specialties: ['브레인스토밍', '창의성', '일반 질문']
+      specialties: ['브레인스토밍', '창의성', '일반 질문'],
+      configured: !!openai
     },
     claude: {
-      available: true,
+      available: !!anthropic || !!openai,
       name: 'Claude 3',
-      specialties: ['코딩', '분석', '정리', '논리적 사고']
+      specialties: ['코딩', '분석', '정리', '논리적 사고'],
+      configured: !!anthropic,
+      fallback: !anthropic && !!openai
     },
     gemini: {
-      available: true,
+      available: !!gemini || !!openai,
       name: 'Google Gemini',
-      specialties: ['검색', '최신정보', '데이터 분석']
+      specialties: ['검색', '최신정보', '데이터 분석'],
+      configured: !!gemini,
+      fallback: !gemini && !!openai
     }
   };
 
@@ -1472,6 +1531,151 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// ===== Docs (Gemini) 관련 엔드포인트 =====
+
+app.post('/api/docs/query', async (req, res) => {
+  try {
+    const { query, context, useSearch } = req.body;
+    
+    // Gemini API 키 확인
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+      // 시뮬레이션 모드
+      console.log('⚠️ Gemini API 키 없음, 시뮬레이션 모드');
+      
+      const simulatedResponse = {
+        text: `[시뮬레이션] "${query}"에 대한 응답입니다.\n\n` +
+              `컨텍스트: ${context.urls ? `${context.urls.length}개 URL` : `${context.files?.length || 0}개 파일`}\n` +
+              `검색 모드: ${useSearch ? '활성화' :
+                '비활성화'}`,
+        urlContext: context.urls?.map(url => ({
+          url,
+          status: 'SIMULATED'
+        })) || [],
+        searchGrounding: useSearch ? [
+          { uri: 'https://example.com', title: '시뮬레이션 검색 결과 1' },
+          { uri: 'https://example.org', title: '시뮬레이션 검색 결과 2' }
+        ] : []
+      };
+      
+      return res.json({
+        success: true,
+        ...simulatedResponse
+      });
+    }
+    
+    // 실제 Gemini API 호출
+    const model = gemini.getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+      },
+    });
+    
+    let prompt = query;
+    
+    if (useSearch) {
+      // Google Search는 google_search_retrieval을 사용
+      prompt = `웹 검색을 통해 다음 질문에 답해주세요: ${query}`;
+      
+      // 일반 모델로 검색 관련 응답 생성 (실제 검색 API 없이)
+      const model = gemini.getGenerativeModel({ 
+        model: 'gemini-1.5-flash',
+        generationConfig: {
+          temperature: 0.9,
+          topK: 40,
+          topP: 0.95,
+        },
+      });
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      
+      return res.json({
+        success: true,
+        text: response.text() + '\n\n*참고: 실시간 웹 검색 기능은 현재 제한적입니다.*',
+        searchGrounding: []
+      });
+      
+    } else if (context.urls && context.urls.length > 0) {
+      prompt = `다음 URL들의 내용을 참고하여 질문에 답해주세요:\n${context.urls.join('\n')}\n\n질문: ${query}`;
+    } else if (context.files && context.files.length > 0) {
+      let fileContext = '\n\n=== 제공된 문서 ===\n';
+      context.files.forEach(file => {
+        fileContext += `\n[${file.name}]\n${file.content.substring(0, 5000)}\n`;
+      });
+      prompt = query + fileContext;
+    }
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    
+    res.json({
+      success: true,
+      text: response.text(),
+      urlContext: context.urls?.map(url => ({ url, status: 'SUCCESS' })) || [],
+      searchGrounding: []
+    });
+
+    res.json({
+      success: true,
+      ...response
+    });
+    
+  } catch (error) {
+    console.error('❌ Docs API 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      text: '오류가 발생했습니다. 다시 시도해주세요.'
+    });
+  }
+});
+
+app.post('/api/docs/suggestions', async (req, res) => {
+  try {
+    const { context } = req.body;
+    
+    // 간단한 제안 생성
+    const suggestions = [];
+    
+    if (context.urls && context.urls.length > 0) {
+      suggestions.push(
+        "이 문서의 주요 기능은 무엇인가요?",
+        "API 사용법을 간단히 설명해주세요",
+        "예제 코드를 보여주세요",
+        "자주 발생하는 오류와 해결방법은?"
+      );
+    } else if (context.files && context.files.length > 0) {
+      suggestions.push(
+        "파일의 주요 내용을 요약해주세요",
+        "중요한 포인트는 무엇인가요?",
+        "관련 예제를 보여주세요",
+        "추가 설명이 필요한 부분은?"
+      );
+    } else {
+      suggestions.push(
+        "문서나 파일을 먼저 추가해주세요",
+        "URL을 입력하거나 파일을 업로드하세요"
+      );
+    }
+    
+    res.json({
+      success: true,
+      suggestions
+    });
+    
+  } catch (error) {
+    console.error('❌ Suggestions API 오류:', error);
+    res.status(500).json({
+      success: false,
+      suggestions: []
+    });
+  }
+});
+
 // ===== 에러 핸들링 미들웨어 =====
 
 app.use((error, req, res, next) => {
@@ -1520,6 +1724,9 @@ app.listen(PORT, () => {
   console.log(`   - POST http://localhost:${PORT}/api/lexpilot/build-summary`);
   console.log(`   - POST http://localhost:${PORT}/api/lexpilot/interpret`);
   console.log(`   - GET  http://localhost:${PORT}/api/status`);
+  console.log(`📚 Docs (Gemini) endpoints:`);
+  console.log(`   - POST http://localhost:${PORT}/api/docs/query`);
+  console.log(`   - POST http://localhost:${PORT}/api/docs/suggestions`);
   console.log(`📁 Files: uploads/ and .env managed automatically`);
   console.log(`🧠 Available AI Models:`);
   console.log(`   - OpenAI GPT-4: ${!!openai ? '✅ Ready' : '❌ Not configured'}`);

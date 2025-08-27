@@ -4,6 +4,9 @@ import styled, { keyframes } from 'styled-components';
 import APIHubCanvas from '../../agents/onboarder/APIHubCanvas';
 import LexpilotCanvas from '../../agents/lexpilot/LexpilotCanvas';
 import InfoVizCanvas from '../../agents/infoviz/InfoVizCanvas';
+import DocsCanvas from '../../agents/docs/DocsCanvas';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 // 기존 스타일 컴포넌트들 (변경 없음)
 const Container = styled.div`
@@ -80,7 +83,7 @@ const Title = styled.h1`
 
 const AgentSelector = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   margin-bottom: 20px;
 `;
@@ -496,6 +499,7 @@ const MainLayout = () => {
   const [leftPanelWidth, setLeftPanelWidth] = useState(420);
   const [isResizing, setIsResizing] = useState(false);
   const [currentDocumentId, setCurrentDocumentId] = useState(null);
+  const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   
   // 새로운 상태들 - 모델 관리
   const [selectedModel, setSelectedModel] = useState('openai');
@@ -538,10 +542,11 @@ const MainLayout = () => {
   ];
 
   const agents = [
-    { id: 'chat', name: 'Chat', description: '기본 대화' },
-    { id: 'onboarder', name: 'API Hub', description: 'API 연동' },
-    { id: 'infoviz', name: 'DataViz', description: '시각화' },
-    { id: 'lexpilot', name: 'Lexpilot', description: '법규 검토' }
+  { id: 'chat', name: 'Chat', description: '기본 대화' },
+  { id: 'onboarder', name: 'API Hub', description: 'API 연동' },
+  { id: 'infoviz', name: 'DataViz', description: '시각화' },
+  { id: 'lexpilot', name: 'Lexpilot', description: '법규 검토' },
+  { id: 'docs', name: 'Docs', description: '문서 대화' }
   ];
 
   // 자동 모델 선택 로직
@@ -908,6 +913,13 @@ const MainLayout = () => {
             <LexpilotCanvas />
           </RightPanelContent>
         );
+
+      case 'docs':
+        return (
+          <RightPanelContent>
+            <DocsCanvas />
+          </RightPanelContent>
+        );
         
       default:
         return (
@@ -941,64 +953,96 @@ const MainLayout = () => {
 
           {/* 모델 선택 UI - Chat 탭에서만 표시 */}
           {activeAgent === 'chat' && (
-            <ModelSelector>
-              <ModelSelectorTitle>
-                🧠 AI 모델 선택
-                {autoMode && <span style={{ fontSize: '12px', color: '#10b981' }}>• 자동 모드 활성화</span>}
-              </ModelSelectorTitle>
-              
-              <ModelGrid>
-                {models.map(model => (
-                  <ModelCard
-                    key={model.id}
-                    selected={selectedModel === model.id}
-                    onClick={() => setSelectedModel(model.id)}
-                    disabled={autoMode}
-                    style={{ opacity: autoMode ? 0.7 : 1 }}
-                  >
-                    <ModelStatus selected={selectedModel === model.id} />
-                    <ModelName selected={selectedModel === model.id}>
-                      <span>{model.icon}</span>
-                      {model.name}
-                    </ModelName>
-                    <ModelDescription>
-                      {model.description}
-                    </ModelDescription>
-                    {modelUsageStats[model.id] > 0 && (
-                      <div style={{
-                        fontSize: '10px',
-                        color: '#9ca3af',
-                        marginTop: '4px'
-                      }}>
-                        사용횟수: {modelUsageStats[model.id]}회
-                      </div>
-                    )}
-                  </ModelCard>
-                ))}
-              </ModelGrid>
+            <>
+              <div style={{ marginBottom: '12px' }}>
+                <button
+        onClick={() => setIsModelSelectorOpen(!isModelSelectorOpen)}
+        style={{
+          width: '100%',
+          padding: '12px',
+          backgroundColor: '#f8fafc',
+          border: '1px solid rgba(0, 0, 0, 0.08)',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: '14px',
+          fontWeight: '600',
+          color: '#374151'
+        }}
+      >
+        <span>🧠 AI 모델 선택 {autoMode && '(자동 모드)'}</span>
+        <span style={{ 
+          transform: isModelSelectorOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.2s'
+        }}>
+          ▼
+        </span>
+                </button>
+              </div>
 
-              <AutoModeToggle>
-                <ToggleSwitch
-                  active={autoMode}
-                  onClick={() => setAutoMode(!autoMode)}
-                />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <ToggleLabel>
-                    자동 모드 (메시지 내용에 따라 AI가 모델 자동 선택)
-                  </ToggleLabel>
-                  {lastAutoSelection && autoMode && (
-                    <div style={{ 
-                      fontSize: '10px', 
-                      color: '#10b981',
-                      fontWeight: '500'
-                    }}>
-                      마지막 선택: {models.find(m => m.id === lastAutoSelection.model)?.name} 
-                      • {lastAutoSelection.reason}
-                    </div>
-                  )}
+              {isModelSelectorOpen && (
+                <ModelSelector>
+        <ModelSelectorTitle>
+          🧠 AI 모델 선택
+          {autoMode && <span style={{ fontSize: '12px', color: '#10b981' }}>• 자동 모드 활성화</span>}
+        </ModelSelectorTitle>
+        
+        <ModelGrid>
+          {models.map(model => (
+            <ModelCard
+              key={model.id}
+              selected={selectedModel === model.id}
+              onClick={() => setSelectedModel(model.id)}
+              disabled={autoMode}
+              style={{ opacity: autoMode ? 0.7 : 1 }}
+            >
+              <ModelStatus selected={selectedModel === model.id} />
+              <ModelName selected={selectedModel === model.id}>
+                <span>{model.icon}</span>
+                {model.name}
+              </ModelName>
+              <ModelDescription>
+                {model.description}
+              </ModelDescription>
+              {modelUsageStats[model.id] > 0 && (
+                <div style={{
+                  fontSize: '10px',
+                  color: '#9ca3af',
+                  marginTop: '4px'
+                }}>
+                  사용횟수: {modelUsageStats[model.id]}회
                 </div>
-              </AutoModeToggle>
-            </ModelSelector>
+              )}
+            </ModelCard>
+          ))}
+        </ModelGrid>
+
+          <AutoModeToggle>
+          <ToggleSwitch
+            active={autoMode}
+            onClick={() => setAutoMode(!autoMode)}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <ToggleLabel>
+              자동 모드 (메시지 내용에 따라 AI가 모델 자동 선택)
+            </ToggleLabel>
+            {lastAutoSelection && autoMode && (
+              <div style={{ 
+                fontSize: '10px', 
+                color: '#10b981',
+                fontWeight: '500'
+              }}>
+                마지막 선택: {models.find(m => m.id === lastAutoSelection.model)?.name} 
+                • {lastAutoSelection.reason}
+              </div>
+            )}
+          </div>
+          </AutoModeToggle>
+                </ModelSelector>
+              )}
+            </>
           )}
 
           <ToolBar>
@@ -1040,7 +1084,15 @@ const MainLayout = () => {
                   )}
                   <div>
                     <MessageBubble isUser={message.isUser}>
-                      {message.content}
+  {message.isUser ? (
+    message.content
+  ) : (
+    <div 
+      dangerouslySetInnerHTML={{
+        __html: DOMPurify.sanitize(marked(message.content))
+      }}
+    />
+  )}
                     </MessageBubble>
                     {!message.isUser && message.model && message.model !== 'system' && (
                       <div style={{
@@ -1095,7 +1147,12 @@ const MainLayout = () => {
                   </Avatar>
                   <div>
                     <MessageBubble isUser={false}>
-                      {streamingMessage}<TypingCursor>|</TypingCursor>
+  <div 
+    dangerouslySetInnerHTML={{
+      __html: DOMPurify.sanitize(marked(streamingMessage))
+    }}
+  />
+  <TypingCursor>|</TypingCursor>
                     </MessageBubble>
                   </div>
                   <MessageTime isUser={false}>Live</MessageTime>
