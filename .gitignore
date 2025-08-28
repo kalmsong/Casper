@@ -5,6 +5,7 @@
 backend/node_modules/
 backend/uploads/
 /.pnp
+backkend/env/.json
 .pnp.js
 
 # PDF
